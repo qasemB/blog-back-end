@@ -34,8 +34,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${PORT}`,
-        description: 'Development Server',
+        url: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`,
+        description: 'API Server',
       },
     ],
     components: {
@@ -120,9 +120,10 @@ app.use('/api/comments', commentRoutes);
 
 // Root route
 app.get('/', (req, res) => {
+  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`;
   res.json({
     message: 'به API وبلاگ فارسی خوش آمدید',
-    documentation: `http://localhost:${PORT}/api-docs`
+    documentation: `${baseUrl}/api-docs`
   });
 });
 
