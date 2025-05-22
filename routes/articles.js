@@ -74,6 +74,13 @@ const upload = multer({
  *   get:
  *     summary: دریافت تمام مقالات
  *     tags: [Articles]
+ *     parameters:
+ *       - in: query
+ *         name: categoryId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: شناسه دسته‌بندی برای فیلتر کردن مقالات
  *     responses:
  *       200:
  *         description: لیست تمام مقالات
@@ -85,8 +92,16 @@ const upload = multer({
  *                 $ref: '#/components/schemas/Article'
  */
 router.get('/', (req, res) => {
-  const articles = db.get('articles').value();
-  res.json(articles);
+  const { categoryId } = req.query;
+  
+  // استفاده از زنجیره دستورات lowdb برای فیلتر کردن مستقیم
+  let articlesQuery = db.get('articles');
+  
+  if (categoryId) {
+    articlesQuery = articlesQuery.filter({ categoryId });
+  }
+  
+  res.json(articlesQuery.value());
 });
 
 /**
