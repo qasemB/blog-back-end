@@ -12,7 +12,7 @@ const articleRoutes = require('./routes/articles');
 const commentRoutes = require('./routes/comments');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4004;
 
 // Middleware
 app.use(cors());
