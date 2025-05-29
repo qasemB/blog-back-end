@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const articleController = require('../controllers/articleController');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -111,8 +112,10 @@ router.get('/:id/comments', articleController.getArticleComments);
  * @swagger
  * /api/articles:
  *   post:
- *     summary: ایجاد مقاله جدید
+ *     summary: ایجاد مقاله جدید (فقط ادمین)
  *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -140,15 +143,19 @@ router.get('/:id/comments', articleController.getArticleComments);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Article'
+ *       403:
+ *         description: فقط ادمین‌ها دسترسی دارند
  */
-router.post('/', articleController.createArticle);
+router.post('/', authenticateToken, requireAdmin, articleController.createArticle);
 
 /**
  * @swagger
  * /api/articles/upload:
  *   post:
- *     summary: آپلود تصویر برای مقاله
+ *     summary: آپلود تصویر برای مقاله (فقط ادمین)
  *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       $ref: '#/components/requestBodies/ImageUpload'
@@ -166,15 +173,19 @@ router.post('/', articleController.createArticle);
  *                 imageUrl:
  *                   type: string
  *                   example: /public/1234567890.png
+ *       403:
+ *         description: فقط ادمین‌ها دسترسی دارند
  */
-router.post('/upload', articleController.upload.single('image'), articleController.uploadImage);
+router.post('/upload', authenticateToken, requireAdmin, articleController.upload.single('image'), articleController.uploadImage);
 
 /**
  * @swagger
  * /api/articles/with-image:
  *   post:
- *     summary: ایجاد مقاله جدید همراه با تصویر
+ *     summary: ایجاد مقاله جدید همراه با تصویر (فقط ادمین)
  *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       $ref: '#/components/requestBodies/ArticleWithImage'
@@ -185,15 +196,19 @@ router.post('/upload', articleController.upload.single('image'), articleControll
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Article'
+ *       403:
+ *         description: فقط ادمین‌ها دسترسی دارند
  */
-router.post('/with-image', articleController.upload.single('image'), articleController.createArticleWithImage);
+router.post('/with-image', authenticateToken, requireAdmin, articleController.upload.single('image'), articleController.createArticleWithImage);
 
 /**
  * @swagger
  * /api/articles/{id}:
  *   put:
- *     summary: بروزرسانی مقاله
+ *     summary: بروزرسانی مقاله (فقط ادمین)
  *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -221,17 +236,21 @@ router.post('/with-image', articleController.upload.single('image'), articleCont
  *     responses:
  *       200:
  *         description: مقاله با موفقیت بروزرسانی شد
+ *       403:
+ *         description: فقط ادمین‌ها دسترسی دارند
  *       404:
  *         description: مقاله یافت نشد
  */
-router.put('/:id', articleController.updateArticle);
+router.put('/:id', authenticateToken, requireAdmin, articleController.updateArticle);
 
 /**
  * @swagger
  * /api/articles/{id}/with-image:
  *   put:
- *     summary: بروزرسانی مقاله همراه با تصویر
+ *     summary: بروزرسانی مقاله همراه با تصویر (فقط ادمین)
  *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -249,15 +268,19 @@ router.put('/:id', articleController.updateArticle);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Article'
+ *       403:
+ *         description: فقط ادمین‌ها دسترسی دارند
  */
-router.put('/:id/with-image', articleController.upload.single('image'), articleController.updateArticleWithImage);
+router.put('/:id/with-image', authenticateToken, requireAdmin, articleController.upload.single('image'), articleController.updateArticleWithImage);
 
 /**
  * @swagger
  * /api/articles/{id}:
  *   delete:
- *     summary: حذف مقاله
+ *     summary: حذف مقاله (فقط ادمین)
  *     tags: [Articles]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -268,9 +291,11 @@ router.put('/:id/with-image', articleController.upload.single('image'), articleC
  *     responses:
  *       200:
  *         description: مقاله با موفقیت حذف شد
+ *       403:
+ *         description: فقط ادمین‌ها دسترسی دارند
  *       404:
  *         description: مقاله یافت نشد
  */
-router.delete('/:id', articleController.deleteArticle);
+router.delete('/:id', authenticateToken, requireAdmin, articleController.deleteArticle);
 
 module.exports = router; 

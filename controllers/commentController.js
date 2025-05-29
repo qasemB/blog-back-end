@@ -25,10 +25,10 @@ const getCommentById = (req, res) => {
   }
 };
 
-// ایجاد نظر جدید
+// ایجاد نظر جدید (فقط کاربران لاگین شده)
 const createComment = (req, res) => {
   try {
-    const { content, articleId, author } = req.body;
+    const { content, articleId } = req.body;
     
     if (!content || !articleId) {
       return res.status(400).json({ message: 'محتوای نظر و شناسه مقاله الزامی است' });
@@ -44,7 +44,8 @@ const createComment = (req, res) => {
       id: createId(),
       content,
       articleId,
-      author: author || 'ناشناس',
+      author: req.user.username, // استفاده از نام کاربری از token
+      userId: req.user.id, // اضافه کردن شناسه کاربر
       createdAt: new Date().toISOString()
     };
     
@@ -56,10 +57,10 @@ const createComment = (req, res) => {
   }
 };
 
-// بروزرسانی نظر
+// بروزرسانی نظر (فقط صاحب نظر یا ادمین)
 const updateComment = (req, res) => {
   try {
-    const { content, author } = req.body;
+    const { content } = req.body;
     
     const comment = db.get('comments').find({ id: req.params.id }).value();
     
@@ -67,10 +68,14 @@ const updateComment = (req, res) => {
       return res.status(404).json({ message: 'نظر یافت نشد' });
     }
     
+    // بررسی اینکه آیا کاربر صاحب نظر است یا ادمین
+    if (comment.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'فقط صاحب نظر یا ادمین می‌تواند نظر را ویرایش کند' });
+    }
+    
     const updatedComment = {
       ...comment,
-      content: content !== undefined ? content : comment.content,
-      author: author !== undefined ? author : comment.author
+      content: content !== undefined ? content : comment.content
     };
     
     db.get('comments').find({ id: req.params.id }).assign(updatedComment).write();
@@ -81,13 +86,18 @@ const updateComment = (req, res) => {
   }
 };
 
-// حذف نظر
+// حذف نظر (فقط صاحب نظر یا ادمین)
 const deleteComment = (req, res) => {
   try {
     const comment = db.get('comments').find({ id: req.params.id }).value();
     
     if (!comment) {
       return res.status(404).json({ message: 'نظر یافت نشد' });
+    }
+    
+    // بررسی اینکه آیا کاربر صاحب نظر است یا ادمین
+    if (comment.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'فقط صاحب نظر یا ادمین می‌تواند نظر را حذف کند' });
     }
     
     db.get('comments').remove({ id: req.params.id }).write();

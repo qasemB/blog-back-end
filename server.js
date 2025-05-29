@@ -10,6 +10,7 @@ const path = require('path');
 const categoryRoutes = require('./routes/categories');
 const articleRoutes = require('./routes/articles');
 const commentRoutes = require('./routes/comments');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 4004;
@@ -30,7 +31,7 @@ const swaggerOptions = {
     info: {
       title: 'وبلاگ فارسی API',
       version: '1.0.0',
-      description: 'API برای وبلاگ فارسی با استفاده از فایل‌های JSON',
+      description: 'API برای وبلاگ فارسی با استفاده از فایل‌های JSON و احراز هویت JWT',
     },
     servers: [
       {
@@ -104,6 +105,13 @@ const swaggerOptions = {
             }
           }
         }
+      },
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
       }
     }
   },
@@ -114,6 +122,7 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/comments', commentRoutes);
@@ -123,7 +132,13 @@ app.get('/', (req, res) => {
   const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`;
   res.json({
     message: 'به API وبلاگ فارسی خوش آمدید',
-    documentation: `${baseUrl}/api-docs`
+    documentation: `${baseUrl}/api-docs`,
+    features: [
+      'احراز هویت با JWT',
+      'مدیریت نقش‌های کاربری (ادمین/کاربر)',
+      'مقالات، دسته‌بندی‌ها و نظرات',
+      'آپلود تصویر'
+    ]
   });
 });
 

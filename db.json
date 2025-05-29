@@ -101,5 +101,23 @@
       "author": "حسین محمودی",
       "createdAt": "2023-03-11T10:45:00.000Z"
     }
+  ],
+  "users": [
+    {
+      "id": "40KFP5EbsB",
+      "username": "admin",
+      "email": "admin@blog.com",
+      "password": "$2b$10$63H/TJ3ORAMN3tFI8xGRdOpBLPiuacqhy77V1KVgi36Os/6DY.1UW",
+      "role": "admin",
+      "createdAt": "2025-05-29T16:41:08.138Z"
+    },
+    {
+      "id": "iINKmdLsc7",
+      "username": "qasem",
+      "email": "qasem@email.com",
+      "password": "$2b$10$RoBbLja/WDXK3em2Pudv9.fmJrtGN3AoAAYliqzVecjRDHx64JPsC",
+      "role": "user",
+      "createdAt": "2025-05-29T16:45:13.946Z"
+    }
   ]
 }

@@ -9,7 +9,8 @@ const db = low(adapter);
 db.defaults({
   categories: [],
   articles: [],
-  comments: []
+  comments: [],
+  users: []
 }).write();
 
 module.exports = {

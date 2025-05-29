@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const commentController = require('../controllers/commentController');
+const { authenticateToken } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -24,6 +25,9 @@ const commentController = require('../controllers/commentController');
  *         author:
  *           type: string
  *           description: نویسنده نظر
+ *         userId:
+ *           type: string
+ *           description: شناسه کاربر نویسنده
  *         createdAt:
  *           type: string
  *           format: date-time
@@ -77,8 +81,10 @@ router.get('/:id', commentController.getCommentById);
  * @swagger
  * /api/comments:
  *   post:
- *     summary: ایجاد نظر جدید
+ *     summary: ایجاد نظر جدید (نیاز به ورود)
  *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -93,8 +99,6 @@ router.get('/:id', commentController.getCommentById);
  *                 type: string
  *               articleId:
  *                 type: string
- *               author:
- *                 type: string
  *     responses:
  *       201:
  *         description: نظر با موفقیت ایجاد شد
@@ -102,15 +106,21 @@ router.get('/:id', commentController.getCommentById);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Comment'
+ *       401:
+ *         description: ابتدا وارد شوید
+ *       403:
+ *         description: توکن نامعتبر است
  */
-router.post('/', commentController.createComment);
+router.post('/', authenticateToken, commentController.createComment);
 
 /**
  * @swagger
  * /api/comments/{id}:
  *   put:
- *     summary: بروزرسانی نظر
+ *     summary: بروزرسانی نظر (فقط صاحب نظر یا ادمین)
  *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -127,22 +137,24 @@ router.post('/', commentController.createComment);
  *             properties:
  *               content:
  *                 type: string
- *               author:
- *                 type: string
  *     responses:
  *       200:
  *         description: نظر با موفقیت بروزرسانی شد
+ *       403:
+ *         description: فقط صاحب نظر یا ادمین می‌تواند نظر را ویرایش کند
  *       404:
  *         description: نظر یافت نشد
  */
-router.put('/:id', commentController.updateComment);
+router.put('/:id', authenticateToken, commentController.updateComment);
 
 /**
  * @swagger
  * /api/comments/{id}:
  *   delete:
- *     summary: حذف نظر
+ *     summary: حذف نظر (فقط صاحب نظر یا ادمین)
  *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -153,9 +165,11 @@ router.put('/:id', commentController.updateComment);
  *     responses:
  *       200:
  *         description: نظر با موفقیت حذف شد
+ *       403:
+ *         description: فقط صاحب نظر یا ادمین می‌تواند نظر را حذف کند
  *       404:
  *         description: نظر یافت نشد
  */
-router.delete('/:id', commentController.deleteComment);
+router.delete('/:id', authenticateToken, commentController.deleteComment);
 
 module.exports = router; 
