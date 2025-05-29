@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, createId } = require('../db');
+const commentController = require('../controllers/commentController');
 
 /**
  * @swagger
@@ -46,10 +46,7 @@ const { db, createId } = require('../db');
  *               items:
  *                 $ref: '#/components/schemas/Comment'
  */
-router.get('/', (req, res) => {
-  const comments = db.get('comments').value();
-  res.json(comments);
-});
+router.get('/', commentController.getAllComments);
 
 /**
  * @swagger
@@ -74,15 +71,7 @@ router.get('/', (req, res) => {
  *       404:
  *         description: نظر یافت نشد
  */
-router.get('/:id', (req, res) => {
-  const comment = db.get('comments').find({ id: req.params.id }).value();
-  
-  if (!comment) {
-    return res.status(404).json({ message: 'نظر یافت نشد' });
-  }
-  
-  res.json(comment);
-});
+router.get('/:id', commentController.getCommentById);
 
 /**
  * @swagger
@@ -114,31 +103,7 @@ router.get('/:id', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Comment'
  */
-router.post('/', (req, res) => {
-  const { content, articleId, author } = req.body;
-  
-  if (!content || !articleId) {
-    return res.status(400).json({ message: 'محتوای نظر و شناسه مقاله الزامی است' });
-  }
-  
-  // Check if article exists
-  const article = db.get('articles').find({ id: articleId }).value();
-  if (!article) {
-    return res.status(400).json({ message: 'مقاله مورد نظر یافت نشد' });
-  }
-  
-  const newComment = {
-    id: createId(),
-    content,
-    articleId,
-    author: author || 'ناشناس',
-    createdAt: new Date().toISOString()
-  };
-  
-  db.get('comments').push(newComment).write();
-  
-  res.status(201).json(newComment);
-});
+router.post('/', commentController.createComment);
 
 /**
  * @swagger
@@ -170,25 +135,7 @@ router.post('/', (req, res) => {
  *       404:
  *         description: نظر یافت نشد
  */
-router.put('/:id', (req, res) => {
-  const { content, author } = req.body;
-  
-  const comment = db.get('comments').find({ id: req.params.id }).value();
-  
-  if (!comment) {
-    return res.status(404).json({ message: 'نظر یافت نشد' });
-  }
-  
-  const updatedComment = {
-    ...comment,
-    content: content !== undefined ? content : comment.content,
-    author: author !== undefined ? author : comment.author
-  };
-  
-  db.get('comments').find({ id: req.params.id }).assign(updatedComment).write();
-  
-  res.json(updatedComment);
-});
+router.put('/:id', commentController.updateComment);
 
 /**
  * @swagger
@@ -209,16 +156,6 @@ router.put('/:id', (req, res) => {
  *       404:
  *         description: نظر یافت نشد
  */
-router.delete('/:id', (req, res) => {
-  const comment = db.get('comments').find({ id: req.params.id }).value();
-  
-  if (!comment) {
-    return res.status(404).json({ message: 'نظر یافت نشد' });
-  }
-  
-  db.get('comments').remove({ id: req.params.id }).write();
-  
-  res.json({ message: 'نظر با موفقیت حذف شد' });
-});
+router.delete('/:id', commentController.deleteComment);
 
 module.exports = router; 

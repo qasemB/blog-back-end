@@ -1,38 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, createId } = require('../db');
-const multer = require('multer');
-const path = require('path');
-
-// Configure multer storage for image uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../public'));
-  },
-  filename: function (req, file, cb) {
-    // Use a unique name for the file to avoid overwriting
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, uniqueSuffix + ext);
-  }
-});
-
-// File filter to only accept images
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('فقط فایل‌های تصویری مجاز هستند!'), false);
-  }
-};
-
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-});
+const articleController = require('../controllers/articleController');
 
 /**
  * @swagger
@@ -91,18 +59,7 @@ const upload = multer({
  *               items:
  *                 $ref: '#/components/schemas/Article'
  */
-router.get('/', (req, res) => {
-  const { categoryId } = req.query;
-  
-  // استفاده از زنجیره دستورات lowdb برای فیلتر کردن مستقیم
-  let articlesQuery = db.get('articles');
-  
-  if (categoryId) {
-    articlesQuery = articlesQuery.filter({ categoryId });
-  }
-  
-  res.json(articlesQuery.value());
-});
+router.get('/', articleController.getAllArticles);
 
 /**
  * @swagger
@@ -127,15 +84,7 @@ router.get('/', (req, res) => {
  *       404:
  *         description: مقاله یافت نشد
  */
-router.get('/:id', (req, res) => {
-  const article = db.get('articles').find({ id: req.params.id }).value();
-  
-  if (!article) {
-    return res.status(404).json({ message: 'مقاله یافت نشد' });
-  }
-  
-  res.json(article);
-});
+router.get('/:id', articleController.getArticleById);
 
 /**
  * @swagger
@@ -156,16 +105,7 @@ router.get('/:id', (req, res) => {
  *       404:
  *         description: مقاله یافت نشد
  */
-router.get('/:id/comments', (req, res) => {
-  const article = db.get('articles').find({ id: req.params.id }).value();
-  
-  if (!article) {
-    return res.status(404).json({ message: 'مقاله یافت نشد' });
-  }
-  
-  const comments = db.get('comments').filter({ articleId: req.params.id }).value();
-  res.json(comments);
-});
+router.get('/:id/comments', articleController.getArticleComments);
 
 /**
  * @swagger
@@ -201,35 +141,7 @@ router.get('/:id/comments', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Article'
  */
-router.post('/', (req, res) => {
-  const { title, content, categoryId, author, image } = req.body;
-  
-  if (!title || !content) {
-    return res.status(400).json({ message: 'عنوان و محتوای مقاله الزامی است' });
-  }
-  
-  // Check if category exists if categoryId is provided
-  if (categoryId) {
-    const category = db.get('categories').find({ id: categoryId }).value();
-    if (!category) {
-      return res.status(400).json({ message: 'دسته‌بندی مورد نظر یافت نشد' });
-    }
-  }
-  
-  const newArticle = {
-    id: createId(),
-    title,
-    content,
-    image: image || null,
-    categoryId: categoryId || null,
-    author: author || 'ناشناس',
-    createdAt: new Date().toISOString()
-  };
-  
-  db.get('articles').push(newArticle).write();
-  
-  res.status(201).json(newArticle);
-});
+router.post('/', articleController.createArticle);
 
 /**
  * @swagger
@@ -255,26 +167,7 @@ router.post('/', (req, res) => {
  *                   type: string
  *                   example: /public/1234567890.png
  */
-router.post('/upload', upload.single('image'), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: 'لطفاً یک فایل تصویر انتخاب کنید' });
-    }
-    
-    // Create the image URL
-    const imageUrl = `/public/${req.file.filename}`;
-    
-    res.json({ 
-      message: 'تصویر با موفقیت آپلود شد',
-      imageUrl: imageUrl 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'خطا در آپلود تصویر',
-      error: error.message 
-    });
-  }
-});
+router.post('/upload', articleController.upload.single('image'), articleController.uploadImage);
 
 /**
  * @swagger
@@ -293,45 +186,7 @@ router.post('/upload', upload.single('image'), (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Article'
  */
-router.post('/with-image', upload.single('image'), (req, res) => {
-  try {
-    const { title, content, categoryId, author } = req.body;
-    
-    if (!title || !content) {
-      return res.status(400).json({ message: 'عنوان و محتوای مقاله الزامی است' });
-    }
-    
-    // Check if category exists if categoryId is provided
-    if (categoryId) {
-      const category = db.get('categories').find({ id: categoryId }).value();
-      if (!category) {
-        return res.status(400).json({ message: 'دسته‌بندی مورد نظر یافت نشد' });
-      }
-    }
-    
-    // Create image URL if file was uploaded
-    const imageUrl = req.file ? `/public/${req.file.filename}` : null;
-    
-    const newArticle = {
-      id: createId(),
-      title,
-      content,
-      image: imageUrl,
-      categoryId: categoryId || null,
-      author: author || 'ناشناس',
-      createdAt: new Date().toISOString()
-    };
-    
-    db.get('articles').push(newArticle).write();
-    
-    res.status(201).json(newArticle);
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'خطا در ایجاد مقاله',
-      error: error.message 
-    });
-  }
-});
+router.post('/with-image', articleController.upload.single('image'), articleController.createArticleWithImage);
 
 /**
  * @swagger
@@ -369,36 +224,7 @@ router.post('/with-image', upload.single('image'), (req, res) => {
  *       404:
  *         description: مقاله یافت نشد
  */
-router.put('/:id', (req, res) => {
-  const { title, content, categoryId, author, image } = req.body;
-  
-  const article = db.get('articles').find({ id: req.params.id }).value();
-  
-  if (!article) {
-    return res.status(404).json({ message: 'مقاله یافت نشد' });
-  }
-  
-  // Check if category exists if categoryId is provided
-  if (categoryId) {
-    const category = db.get('categories').find({ id: categoryId }).value();
-    if (!category) {
-      return res.status(400).json({ message: 'دسته‌بندی مورد نظر یافت نشد' });
-    }
-  }
-  
-  const updatedArticle = {
-    ...article,
-    title: title !== undefined ? title : article.title,
-    content: content !== undefined ? content : article.content,
-    image: image !== undefined ? image : article.image,
-    categoryId: categoryId !== undefined ? categoryId : article.categoryId,
-    author: author !== undefined ? author : article.author
-  };
-  
-  db.get('articles').find({ id: req.params.id }).assign(updatedArticle).write();
-  
-  res.json(updatedArticle);
-});
+router.put('/:id', articleController.updateArticle);
 
 /**
  * @swagger
@@ -424,46 +250,7 @@ router.put('/:id', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Article'
  */
-router.put('/:id/with-image', upload.single('image'), (req, res) => {
-  try {
-    const { title, content, categoryId, author } = req.body;
-    
-    const article = db.get('articles').find({ id: req.params.id }).value();
-    
-    if (!article) {
-      return res.status(404).json({ message: 'مقاله یافت نشد' });
-    }
-    
-    // Check if category exists if categoryId is provided
-    if (categoryId) {
-      const category = db.get('categories').find({ id: categoryId }).value();
-      if (!category) {
-        return res.status(400).json({ message: 'دسته‌بندی مورد نظر یافت نشد' });
-      }
-    }
-    
-    // Create image URL if file was uploaded
-    const imageUrl = req.file ? `/public/${req.file.filename}` : article.image;
-    
-    const updatedArticle = {
-      ...article,
-      title: title !== undefined ? title : article.title,
-      content: content !== undefined ? content : article.content,
-      image: imageUrl,
-      categoryId: categoryId !== undefined ? categoryId : article.categoryId,
-      author: author !== undefined ? author : article.author
-    };
-    
-    db.get('articles').find({ id: req.params.id }).assign(updatedArticle).write();
-    
-    res.json(updatedArticle);
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'خطا در بروزرسانی مقاله',
-      error: error.message 
-    });
-  }
-});
+router.put('/:id/with-image', articleController.upload.single('image'), articleController.updateArticleWithImage);
 
 /**
  * @swagger
@@ -484,20 +271,6 @@ router.put('/:id/with-image', upload.single('image'), (req, res) => {
  *       404:
  *         description: مقاله یافت نشد
  */
-router.delete('/:id', (req, res) => {
-  const article = db.get('articles').find({ id: req.params.id }).value();
-  
-  if (!article) {
-    return res.status(404).json({ message: 'مقاله یافت نشد' });
-  }
-  
-  // Remove article
-  db.get('articles').remove({ id: req.params.id }).write();
-  
-  // Remove all comments associated with this article
-  db.get('comments').remove({ articleId: req.params.id }).write();
-  
-  res.json({ message: 'مقاله با موفقیت حذف شد' });
-});
+router.delete('/:id', articleController.deleteArticle);
 
 module.exports = router; 

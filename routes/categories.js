@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, createId } = require('../db');
+const categoryController = require('../controllers/categoryController');
 
 /**
  * @swagger
@@ -38,10 +38,7 @@ const { db, createId } = require('../db');
  *               items:
  *                 $ref: '#/components/schemas/Category'
  */
-router.get('/', (req, res) => {
-  const categories = db.get('categories').value();
-  res.json(categories);
-});
+router.get('/', categoryController.getAllCategories);
 
 /**
  * @swagger
@@ -66,15 +63,7 @@ router.get('/', (req, res) => {
  *       404:
  *         description: دسته‌بندی یافت نشد
  */
-router.get('/:id', (req, res) => {
-  const category = db.get('categories').find({ id: req.params.id }).value();
-  
-  if (!category) {
-    return res.status(404).json({ message: 'دسته‌بندی یافت نشد' });
-  }
-  
-  res.json(category);
-});
+router.get('/:id', categoryController.getCategoryById);
 
 /**
  * @swagger
@@ -95,16 +84,7 @@ router.get('/:id', (req, res) => {
  *       404:
  *         description: دسته‌بندی یافت نشد
  */
-router.get('/:id/articles', (req, res) => {
-  const category = db.get('categories').find({ id: req.params.id }).value();
-  
-  if (!category) {
-    return res.status(404).json({ message: 'دسته‌بندی یافت نشد' });
-  }
-  
-  const articles = db.get('articles').filter({ categoryId: req.params.id }).value();
-  res.json(articles);
-});
+router.get('/:id/articles', categoryController.getCategoryArticles);
 
 /**
  * @swagger
@@ -133,23 +113,7 @@ router.get('/:id/articles', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Category'
  */
-router.post('/', (req, res) => {
-  const { title, description } = req.body;
-  
-  if (!title) {
-    return res.status(400).json({ message: 'عنوان دسته‌بندی الزامی است' });
-  }
-  
-  const newCategory = {
-    id: createId(),
-    title,
-    description: description || ''
-  };
-  
-  db.get('categories').push(newCategory).write();
-  
-  res.status(201).json(newCategory);
-});
+router.post('/', categoryController.createCategory);
 
 /**
  * @swagger
@@ -181,25 +145,7 @@ router.post('/', (req, res) => {
  *       404:
  *         description: دسته‌بندی یافت نشد
  */
-router.put('/:id', (req, res) => {
-  const { title, description } = req.body;
-  
-  const category = db.get('categories').find({ id: req.params.id }).value();
-  
-  if (!category) {
-    return res.status(404).json({ message: 'دسته‌بندی یافت نشد' });
-  }
-  
-  const updatedCategory = {
-    ...category,
-    title: title !== undefined ? title : category.title,
-    description: description !== undefined ? description : category.description
-  };
-  
-  db.get('categories').find({ id: req.params.id }).assign(updatedCategory).write();
-  
-  res.json(updatedCategory);
-});
+router.put('/:id', categoryController.updateCategory);
 
 /**
  * @swagger
@@ -219,25 +165,9 @@ router.put('/:id', (req, res) => {
  *         description: دسته‌بندی با موفقیت حذف شد
  *       404:
  *         description: دسته‌بندی یافت نشد
+ *       400:
+ *         description: امکان حذف وجود ندارد (مقالاتی به این دسته‌بندی وابسته هستند)
  */
-router.delete('/:id', (req, res) => {
-  const category = db.get('categories').find({ id: req.params.id }).value();
-  
-  if (!category) {
-    return res.status(404).json({ message: 'دسته‌بندی یافت نشد' });
-  }
-  
-  // Remove category
-  db.get('categories').remove({ id: req.params.id }).write();
-  
-  // Update articles that belong to this category (set categoryId to null)
-  db.get('articles').filter({ categoryId: req.params.id })
-    .each(article => {
-      article.categoryId = null;
-    })
-    .write();
-  
-  res.json({ message: 'دسته‌بندی با موفقیت حذف شد' });
-});
+router.delete('/:id', categoryController.deleteCategory);
 
 module.exports = router; 
